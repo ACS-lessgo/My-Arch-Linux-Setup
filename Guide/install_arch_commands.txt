@@ -1,0 +1,347 @@
+iwctl 
+device list
+station wlan0 scan
+station wlan0 get-getnetworks
+station wlan0 connect "2nd home 3"
+ping -c 5 8.8.8.8
+pacman -Sy
+
+lsblk
+gdisk nvme0n1
+{
+n = new partition
++512M
+ef00 (efi partition)
+
+n = new partition (linux file systems)
+
+w = write all changes
+
+}
+
+mkfs.fat -F32 /dev/nvme0n1p1
+mkfs.btrfs /dev/nvmeon1p2 -f
+
+mount /dev/nvme0n1p2 /mnt
+btrfs subvolume create /mnt/@
+btrfs subvolume create /mnt/@home
+btrfs subvolume create /mnt/@var
+
+umount /mnt
+
+mount -o noatime,compress=zstd,ssd,discard=async,space_cache=v2,subvol=@ /dev/nvme0n1p2 /mnt
+
+mkdir -p /mnt/{boot/efi,home,var}
+
+mount -o noatime,compress=zstd,ssd,discard=async,space_cache=v2,subvol=@home /dev/nvme0n1p2 /mnt/home
+
+mount -o noatime,compress=zstd,ssd,discard=async,space_cache=v2,subvol=@var /dev/nvme0n1p2 /mnt/var
+
+mount /dev/nvme0n1p1 /mnt/boot/efi
+
+lsblk
+
+pacstrap /mnt base linux linux-lts linux-firmware git nano intel-ucode btrfs-progs sudo 
+
+genfstab -U /mnt >> /mnt/etc/fstab
+
+arch-chroot /mnt
+
+cat /etc/fstab
+
+ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+
+hwclock --systohc
+nano /etc/locale.gen
+locale-gen
+
+echo "LANG=en_US.UTF-8" >> /etc/locale.conf
+
+echo "ArchKDE" >> /etc/hostname
+
+nano /etc/hosts
+{
+127.0.0.1   localhost 
+::1         localhost
+127.0.1.1   ArchKDE.localdomain ArchKDE
+}
+
+passwd (enter root password)
+
+pacman -S grub efibootmgr networkmanager dialog mtools dosfstools base-devel linux-headers linux-lts-headers xdg-utils xdg-user-dirs pulseaudio pulseaudio-bluetooth wireless_tools
+[
+    sudo pacman -S network-manager-applet wpa_supplicant bluez bluez-utils pulseaudio-alsa alsa-utils gvfs
+    (gvfs = used to access different file systems)
+    (Aditional packages If required)
+]
+
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB 
+
+pacman -S os-prober 
+nano /etc/default/grub
+(Uncomment last line ie, GRUB_DISABLE_OS_PROBER=false )
+
+grub-mkconfig -o /boot/grub/grub.cfg
+
+systemctl enable NetworkManager
+systemctl start bluetooth.service
+systemctl enable bluetooth.service
+systemctl enable bluetooth
+systemctl enable fstrim.timer
+
+useradd -m koushik
+passwd koushik (enter password for koushik)
+
+usermod -aG wheel,power,storage koushik
+
+EDITOR=nano visudo 
+(
+Uncomment line which has 
+%wheel ALL=(ALL:ALL) ALL
+
+Add line 
+Defaults timestamp_timeout=0
+)
+
+nano /etc/mkinitcpio.conf
+(
+Replace 
+MODULES=()
+With
+MODUELS=(btrfs)
+)
+mkinitcpio -p linux
+mkinitcpio -p linux-lts
+
+exit
+umount -R /mnt
+reboot
+
+Enter into USER CREATED
+
+nmtui
+(
+Activate a connection
+In wifi list choose and connect
+)
+
+ip a
+sudo pacman -Sy
+
+sudo pacman -S xorg xf86-video-intel
+
+(Installing KDE desktop)
+
+sudo pacman -S plasma-desktop dolphin dolphin-plugins ark konsole plasma-nm plasma-pa kdeplasma-addons kde-gtk-config powerdevil sddm sddm-kcm bluedevil kscreen kinfocenter firefox 
+
+sudo systemctl enable sddm
+reboot
+
+[Install Chaotic-Aur]
+
+pacman-key --recv-key FBA220DFC880C036 --keyserver keyserver.ubuntu.com
+pacman-key --lsign-key FBA220DFC880C036
+pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+
+nano /etc/pacman.conf
+(
+Add below commands
+[chaotic-aur]
+Include = /etc/pacman.d/chaotic-mirrorlist
+)
+
+sudo pacman -S vscode brave
+[Firefox is recomended]
+
+[   Use this below to get profile switcher in Firefox
+    (Profile Switcher for Firefox)
+    rustup default stable
+    git clone https://aur.archlinux.org/firefox-profile-switcher-connector.git && cd firefox-profile-switcher-connector && makepkg -si
+
+]
+
+[
+    (To add profiles in firefox type)
+    firefox -ProfileManager
+
+    (To Import Password from file)
+    about:config
+    signon.management.page.fileImport.enabled (set this to true)
+    security.allow_eval_in_parent_process (set this to true)
+
+    (Firefox requires DRM to play audio and videos in browser So Enable DRM)
+
+    Use Adblock Plus
+
+    (To get smooth trackpad scrolling)
+    echo export MOZ_USE_XINPUT2=1 | sudo tee /etc/profile.d/use-xinput2.sh
+]
+
+[
+Extentions for vscode
+
+sudo pacman -S python-pip
+sudo pacman -S mingw-w64-gcc
+
+Autodocstring
+C/C++ Extension Pack
+C/c++ themes
+Code runner
+Gruvbox theme [OR] Shades Of Purple Theme
+Python
+Jupyter
+Markdown alli in one
+Python indent
+]
+
+sudo pacman -S timeshift timeshift-autosnap
+
+git clone https://aur.archlinux.org/zramd.git && cd zramd && makepkg -si
+sudo systemctl enable --now zramd
+
+sudo pacman -S grub-btrfs
+sudo pacman -S update-grub
+sudo timeshift-gtk
+[create a snapshot by selecting btrfs and correct file system/disk and then update-grub]
+sudo update-grub
+
+sudo pacman -S ntfs-3g
+
+sudo pacman -S kwalletmanager
+[
+To disable kdewallet 
+go to system settings >> KdeWallet >> Uncheck Enable wallet services for all subsystems
+After this reboot
+]
+
+sudo pacman -S latte-dock-git
+
+[
+    To enable tap-to-click in your laptop touchpad
+    Go to System Settings >> Input Devices >> Touchpad >> Check tap-to-click
+    If tap-to-click is greyed then install 
+    sudo pacman -S xf86-input-synaptics
+    Then reboot >> Follow from previous line
+]
+
+[
+    Download wallpaper from 
+    https://wallpapersden.com/sekiro-shadows-die-twice-art-wallpaper/1440x900/
+]
+
+[
+    Go to latte load my layout and go to effects install animated dot effect 
+]
+
+sudo pacman -S albert
+
+git clone https://aur.archlinux.org/ksuperkey.git && cd ksuperkey && makepkg -si
+(Then go to configure latte in there enable Check box for Press Mod to activate application launcher)
+
+
+[
+    Now go to add widget and install from kde online store there Type and install following
+    Window Buttons Applet = sudo pacman -S plasma5-applets-window-buttons
+    Window Title Applet = sudo pacman -S plasma5-applets-window-title
+    Window AppMenu Applet = sudo pacman -S plasma5-applets-window-appmenu
+    Moderen Clock by prayagjain
+    mediacontroller_plus by ismailOf
+    netspeed widget by hessiJames = sudo pacman -S ksysguard (Not Working)
+]
+
+
+[Open System Settings  and do tweeks]
+
+Global Theme = GruvboxPlasma
+Application Style = Fusion
+Plasma Style = GruboxPlasma
+Colors = GrubboxPlasma
+Window Decorations = Breeze
+Fonts = General : Chrusty Rock 10 pt
+        Fixed Width : Hack 10 pt
+        Small : Noto Sans 8 pt
+        Toolbar : Omegle 10 pt
+        Menu : Noto Sans 10 pt
+        Window Title : Noto Sans 10 pt
+
+        Anti Aliasing = Enabled
+        Exclude Range from antialiazing = Disabled
+
+        Sub Pixel Rendering = RGB
+        Hinting = Slight
+        force font DPI = unchecked
+
+Icons = Gruvbox
+Cursors = PearDarkCursors
+Launch Feedback = Cursor : Bouncing
+                  Task manager : Enable animation
+                  Stop animation after : 5 seconds
+Splash Screen = Ironman : active
+                Sweetified Plasma
+                Vader
+                BEautifulTreeAnimation
+                GruvboxPlasma
+                None
+
+
+[Extra Softwares]
+
+sudo pacman -S jamesdsp [OR] jamesdsp-pulse
+sudo pacman -S evince
+sudo pacman -S kamosoC/C++ Extension Pack
+sudo pacman -S vlc [OR] smplayer smplayer-themes smplayer-skins
+sudo pacman -S kdeconnect
+sudo pacman -S deluge [OR] sudo pacman -S ktorrent [OR] sudo pacman -S transmission-qt
+sudo pacman -S gpicview
+sudo pacman -S htop
+sudo pacman -S partitionmanager
+sudo pacman -S pamac
+
+[
+    To enable live wallpaper do as follows :
+    right click on desktop go to >> configure Desktop and Wallpaper 
+    In Wallpaper Type >> Get new plugins >> SmartER Video Wallpaper by sirpedroec
+    Choose whatever live wallpaper you want and hit apply
+]
+
+(Install latte side bar button, If you want On-demand side panel)
+plasma5-applets-latte-sidebar-button]$ git clone https://aur.archlinux.org/plasma5-applets-latte-sidebar-button.git && cd plasma5-applets-latte-sidebar-button && makepkg -si
+
+(Install stremio)
+sudo pacman -S stremio
+
+
+(To setup gesture virtual workspace switch)
+sudo gpasswd -a $USER input
+sudo pacman -S xdotool wmctrl
+git clone https://aur.archlinux.org/libinput-gestures.git && cd libinput-gestures && makkepkg -si
+
+sudo cp /etc/libinput-gestures.conf ~/.config/libinput-gestures.conf
+
+(To edit Touch-Pad features)
+[
+    sudo nano ~/.config/libinput-gestures.conf
+    gesture swipe up      xdotool key ctrl+F9
+    gesture swipe down     xdotool key super+F8
+    gesture swipe left _internal ws_up
+    gesture swipe right _internal ws_down
+]
+
+reboot
+libinput-gestures-setup start
+libinput-gestures-setup autostart
+
+
+(If system time is showing wrong)
+sudo timedatectl set-local-rtc 1 --adjust-system-clock
+sudo timedatectl set-ntp true
+sudo timedatectl timesync-status
+
+(Extra Video Codec Packages)
+sudo pacman -S a52dec ffmpeg libdvbpsi libebml libmad libmatroska libmpeg2 libtar libupnp lua52 wayland-protocols
+
+(Install screenshot tool)
+sudo pacman -S spectacle
+
+(Best system monitor tool)
+sudo pacman -S stacer
