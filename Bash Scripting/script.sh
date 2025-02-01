@@ -144,3 +144,41 @@ curl -b cookies.txt https://example.com/profile # sends a GET request with cooki
 
 
 
+# Installing AUR Packages
+
+# Install yay
+git clone https://aur.archlinux.org/yay.git
+cd yay
+makepkg -si
+
+# Install paru
+git clone https://aur.archlinux.org/paru.git
+cd paru
+makepkg -si
+
+# Install neovim-nightly-bin
+yay -S neovim-nightly-bin
+
+# Uninstall neovim-nightly-bin
+yay -R neovim-nightly-bin
+
+# Update all packages
+yay -Syu
+
+# Same can done using paru just replace yay with paru
+paru -Syu
+
+
+
+# Mounting a external hard drive
+
+sudo mount /dev/sdb1 /mnt/usb
+
+# Unmounting a external hard drive
+
+sudo umount /mnt/usb
+
+# Using ntfsfix to fix NTFS partitions
+
+sudo ntfsfix /dev/sda1  # use the correct partition name
+
