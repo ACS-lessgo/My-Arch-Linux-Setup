@@ -1,1 +1,1 @@
-# Bash
+# My Arch Linux Setup
